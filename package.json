@@ -1,0 +1,29 @@
+{
+  "name": "typed-env",
+  "version": "0.0.1",
+  "description": "Parse environment variables from 'process.env' to Typed object",
+  "main": "index.js",
+  "author": "",
+  "license": "BSD-2-Clause",
+  "keywords": [
+    "env",
+    "environment",
+    "variables",
+    "config",
+    "settings",
+    "typed"
+  ],
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "funding": "",
+  "readmeFilename": "README.md",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.1",
+    "typescript": "^5.3.2"
+  }
+}
