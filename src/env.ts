@@ -32,7 +32,7 @@ export interface EnvConfig {
      * Separator to use when `isArray` is `true`.  
      * *In case of `RegExp` remember to use the `g` modifier. E.g.: `/;/g` or `/,/g`*  
      * 
-     * Default separator is `/[,;]/g`;
+     * Default separator is `/\s*[,;]+\s* /g`;
      */
     separator?: string | RegExp ;
     /** 
@@ -60,6 +60,7 @@ export interface EnvDefinition { [key: string]: EnvConfig };
  * 
  * @param config Environment variables definition
  * @param envObj Environment variables
+ * @param mergeConfig Object to put value on, old values in this variable will be override
  * @returns Loaded configuration from environment variables
  */
 export function loadConfig<T extends EnvDefinition, 
@@ -76,11 +77,15 @@ export function loadConfig<T extends EnvDefinition,
                         : undefined
     }
 >
-(config: T, envObj: Record<string, any> |NodeJS.ProcessEnv = process?.env || {}, mergeConfig: any = {}): R {
+(config: T, envObjArr: Record<string, any>[] | Record<string, any> = process?.env || {}, mergeConfig: any = {}): R {
+    if( !Array.isArray( envObjArr ) ) envObjArr = [ envObjArr ]; // always array after that
     let thatConfig: any = mergeConfig || {};
     for(let key in config) {
         let cfg = config[ key ];
-        thatConfig[ key ] = parseConfig( cfg, envObj );
+        for(let envObj of envObjArr as Record<string, any>[]) {
+            if( !(cfg.name in envObj) && (key in thatConfig) ) continue;
+            thatConfig[ key ] = parseConfig( cfg, envObj );
+        }
     }
     return thatConfig as R;
 };
@@ -94,12 +99,12 @@ export function parseConfig<T extends EnvConfig,
                     ? ( T['isArray'] extends true ? boolean[] : boolean ) 
                     : any
 >
-(config: T, envObj: Record<string, any> | NodeJS.ProcessEnv): R {
+(config: T, envObj: Record<string, any>): R {
     let envStr = envObj[ config.name ] || '';
     let type = config.type || 'auto';
     let value: any = '';
     if( config.isArray ) {
-        let separator = config.separator || /[,;]/g ;
+        let separator = config.separator || /\s*[,;]+\s*/g ;
         let arrEnvStr = envStr.split(separator);
         value = [];
         for(let item of arrEnvStr) {
@@ -115,7 +120,7 @@ export function parseConfig<T extends EnvConfig,
         if( type === 'auto' ) value = parseAuto( envStr, config.defaultValue as any );
         if( type === 'boolean' ) value = parseBoolean( envStr, config.defaultValue as boolean || false );
         if( type === 'number' ) value = parseNumber( envStr, config.defaultValue as number || 0 );
-        if( type === 'string' ) value = envStr || config.defaultValue as string || '';
+        if( type === 'string' ) value = ''+ (envStr || config.defaultValue as string || '');
         if( config.isArray ) value = [ value ];
     }
     return value as R;

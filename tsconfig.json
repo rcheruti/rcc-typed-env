@@ -5,6 +5,7 @@
     "rootDir": "src",
     "declaration": true,
     "types": ["node", "@types/mocha"],
-    "outDir": "dist"
+    "outDir": "dist",
+    "removeComments": false
   }
 }

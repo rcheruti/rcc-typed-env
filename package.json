@@ -21,9 +21,8 @@
   "readmeFilename": "README.md",
   "scripts": {
     "test": "mocha test/** --require ts-node/register --extension ['ts'] --recursive ",
-    "build": "rimraf dist & tsc",
-
-    "prepack": "npmignore --auto",
+    "build": "rimraf dist && tsc",
+    "prepack": "npm run build && npmignore --auto",
     "mocha": "mocha"
   },
   "publishConfig": {

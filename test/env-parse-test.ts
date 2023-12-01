@@ -1,5 +1,5 @@
 import * as assert from 'assert';
-import { parseAuto, parseBoolean, parseNumber } from '../src/env';
+import { parseAuto, parseBoolean, parseNumber, parseConfig } from '../src/env';
 import { assertThrows } from './test-utils';
 
 describe('The "parse..." functions', function () {
@@ -56,7 +56,7 @@ describe('The "parse..." functions', function () {
     });
 
     // parseAuto
-    it('should "parseAuto" return a boolean value', async function () {
+    it('should "parseAuto" return an interpreted value', async function () {
         assert.strictEqual( parseAuto( ' true ' ), true );
         assert.strictEqual( parseAuto( ' FalSE ' ), false );
         assert.strictEqual( parseAuto( true ), true );
@@ -69,5 +69,33 @@ describe('The "parse..." functions', function () {
         assert.strictEqual( parseAuto( ' FalSE ', 'default value' ), false );
         assert.strictEqual( parseAuto( '', 'default value' ), 'default value' );
         assert.strictEqual( parseAuto( '   ', 'default value' ), 'default value' );
+    });
+});
+describe('The "parseConfig" function', function() {
+    it('must parse typed variables', async function() {
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'boolean' }, { MY_VALUE:'true' }) , true );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'boolean' }, { MY_VALUE:'false' }) , false );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'number' }, { MY_VALUE:'25' }) , 25 );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'number' }, { MY_VALUE:'10_000.35' }) , 10_000.35 );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'string' }, { MY_VALUE:'my string' }) , 'my string' );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'string' }, { MY_VALUE: 25 }) , '25' );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'string' }, { MY_VALUE: true }) , 'true' );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'auto' }, { MY_VALUE:'true' }) , true );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'auto' }, { MY_VALUE:'10_000.35' }) , 10_000.35 );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'auto' }, { MY_VALUE:'my string' }) , 'my string' );
+    });
+    it('must set default values on non parsable values', async function() {
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'boolean', defaultValue: true }, { MY_VALUE:'another' }) , true );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'boolean', defaultValue: false }, { MY_VALUE:'another' }) , false );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'number', defaultValue: 25 }, { MY_VALUE:'another' }) , 25 );
+        assert.strictEqual( parseConfig({ name:'MY_VALUE', type:'number', defaultValue: 10_000.35 }, { MY_VALUE:'another' }) , 10_000.35 );
+    });
+    it('must parse array variables', async function() {
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'boolean', isArray: true }, { MY_VALUE:'false,true , false' }) , [false,true,false] );
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'number', isArray: true }, { MY_VALUE:'25 ,10_000.35 ;, 18.75' }) , [25, 10_000.35, 18.75] );
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'string', isArray: true }, { MY_VALUE:'Hello world, another short text ; last text' }) , ['Hello world','another short text','last text'] );
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'string', isArray: true }, { MY_VALUE:'false,true , false' }) , ['false','true','false'] );
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'number', isArray: true, defaultValue:[25, 18, 46] }, { ANOTHER_KEY:'false,true , false' }) , [25,18,46] );
+        assert.deepStrictEqual( parseConfig({ name:'MY_VALUE', type:'auto', isArray: true }, { MY_VALUE:'25,true , last text' }) , [25,true,'last text'] );
     });
 });
