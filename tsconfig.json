@@ -1,0 +1,10 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "declaration": true,
+    "types": ["node", "@types/mocha"],
+    "outDir": "dist"
+  }
+}

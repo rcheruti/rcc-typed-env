@@ -76,8 +76,8 @@ export function loadConfig<T extends EnvDefinition,
                         : undefined
     }
 >
-(config: T, envObj: NodeJS.ProcessEnv = process.env): R {
-    let thatConfig: any = {  };
+(config: T, envObj: Record<string, any> |NodeJS.ProcessEnv = process?.env || {}, mergeConfig: any = {}): R {
+    let thatConfig: any = mergeConfig || {};
     for(let key in config) {
         let cfg = config[ key ];
         thatConfig[ key ] = parseConfig( cfg, envObj );
@@ -94,7 +94,7 @@ export function parseConfig<T extends EnvConfig,
                     ? ( T['isArray'] extends true ? boolean[] : boolean ) 
                     : any
 >
-(config: T, envObj: NodeJS.ProcessEnv = process.env): R {
+(config: T, envObj: Record<string, any> | NodeJS.ProcessEnv): R {
     let envStr = envObj[ config.name ] || '';
     let type = config.type || 'auto';
     let value: any = '';
@@ -124,10 +124,8 @@ export function parseConfig<T extends EnvConfig,
 // ------------------------------------------------
 
 const regexpBoolean = /\s*true\s*|\s*false\s*/i;
-const regexpNumber = /^\s*(\d[\d_]*|[\d_]*\.\d[\d_]*)\s*$/;
-// const regexpArray = /^\s*\[.*\]\s*$/;
+const regexpNumber = /^\s*(0x)?(\d[\d_]*|[\d_]*\.\d[\d_]*)\s*$/;
 
-// export const checkAuto = (value: any) => null ;
 export const isBoolean = (value: any): boolean => typeof value === 'boolean' || regexpBoolean.test(value) ;
 export const isNumber = (value: any): boolean => typeof value === 'number' || regexpNumber.test(value) ;
 export const isString = (value: any): boolean => typeof value === 'string' ;
@@ -145,9 +143,9 @@ export const isString = (value: any): boolean => typeof value === 'string' ;
  * @param defaultValue The default value to return if the `value` parameter cannot be parsed
  * @returns The boolean parsed, or the `defaultValue`
  */
-export const parseBoolean = (value: any, defaultValue: boolean|null|undefined = null): boolean => {
+export const parseBoolean = (value: any, defaultValue?: boolean|undefined): boolean => {
     if( !isBoolean(value) ) {
-        if( defaultValue === null || defaultValue === undefined ) throw Error('The value "'+value+'" is not a boolean!');
+        if( defaultValue === undefined ) throw Error('The value "'+value+'" is not a boolean!');
         else return defaultValue;
     }
     if( !isString(value) ) return value; // is just a boolean
@@ -164,9 +162,9 @@ export const parseBoolean = (value: any, defaultValue: boolean|null|undefined = 
  * @param defaultValue The default value to return if the `value` parameter cannot be parsed
  * @returns The number parsed, or the `defaultValue`
  */
-export const parseNumber = (value: any, defaultValue: number|null|undefined = null): number => {
+export const parseNumber = (value: any, defaultValue?: number|undefined): number => {
     if( !isNumber(value) ) {
-        if( defaultValue === null || defaultValue === undefined ) throw Error('The value "'+value+'" is not a number!');
+        if( defaultValue === undefined ) throw Error('The value "'+value+'" is not a number!');
         else return defaultValue;
     }
     if( !isString(value) ) return value; // is just a number
@@ -175,5 +173,6 @@ export const parseNumber = (value: any, defaultValue: number|null|undefined = nu
 export const parseAuto = (value: any, defaultValue?: EnvConfigValueField): EnvConfigValueField => {
     if( isBoolean( value ) ) return parseBoolean( value );
     if( isNumber( value ) ) return parseNumber( value );
+    if( isString( value ) ) value = value.trim();
     return value || defaultValue ;
 };

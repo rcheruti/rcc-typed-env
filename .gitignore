@@ -1,6 +1,8 @@
+.npmignore
+
 # Logs
 logs
-*.log
+*.log*
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
