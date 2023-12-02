@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Parse environment variables from 'process.env' to Typed object",
   "main": "index.js",
-  "author": "",
+  "author": "Rafael Cheruti",
   "license": "BSD-2-Clause",
   "keywords": [
     "env",

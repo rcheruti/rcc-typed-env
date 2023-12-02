@@ -1,20 +1,24 @@
 
 
-declare type EnvConfigTypeField = 'auto' | 'boolean' | 'number' | 'string' ;
-declare type EnvConfigValueField = boolean | number | string ;
+export declare type EnvConfigTypeField = 'auto' | 'boolean' | 'number' | 'string' ;
+export declare type EnvConfigValueField = boolean | number | string ;
 
 /** Configurations to load environment variables */
 export interface EnvConfig {
-    /** The name of the variable. */
+    /**
+     * The name of the variable.  
+     * This is the name that will be searched for values loading.
+     * @required
+     */
     name: string ;
     /** 
      * The type of the variable. Each type has a default value when no one is founded:  
-     * - **auto**: will try differents parse strategies, and set to `null` by default if no one set.  
-     * - **boolean**: will try parse boolean (words `false` or `true`), and set to `false` by default if no one set. It is Case-Insensitive.  
-     * - **number**: will parse as number (using `parseFloat(...)`), and set to `0.0` by default if no one set.  
-     * - **string**: will load as string (*'as is'*), and set to empty string (`""`) by default if no one set. Case is not changed.  
+     * - **auto**: will try different parse strategies, and set to `null` by default.  
+     * - **boolean**: will try parse boolean (words `false` or `true`), and set to `false` by default. The reading of boolean words is Case-Insensitive.  
+     * - **number**: will parse as number (using `parseFloat(...)`), and set to `0.0` by default.  
+     * - **string**: will load as string (*'as is'*), and set to empty string (`""`) by default. Case is not changed.  
      * 
-     * Default type is `auto`.
+     * @default auto
      */
     type?: EnvConfigTypeField;
     /** 
@@ -25,14 +29,14 @@ export interface EnvConfig {
      * When field `type` is defined with `auto` a mixed typed Array will be parsed,
      * otherwise a unique typed Array is parsed, with parsing errors set to `defaultValue` *(if set)*.
      * 
-     * Default is `false`.
+     * @default false
      */
     isArray?: boolean ;
     /**
      * Separator to use when `isArray` is `true`.  
-     * *In case of `RegExp` remember to use the `g` modifier. E.g.: `/;/g` or `/,/g`*  
+     * *In case of `RegExp` remember to use the `g` modifier. E.g.: `/[\|,;]/g` or `/[\s]/g`*  
      * 
-     * Default separator is `/\s*[,;]+\s* /g`;
+     * @default RegEx /\s*[,;]+\s* /g
      */
     separator?: string | RegExp ;
     /** 
@@ -46,7 +50,7 @@ export interface EnvDefinition { [key: string]: EnvConfig };
 // ------------------------------------------------
 
 /**
- * Loads configurations from environment variables.  
+ * Load configurations from environment variables.  
  * E.g.:  
  * ```js
  * {
@@ -54,14 +58,22 @@ export interface EnvDefinition { [key: string]: EnvConfig };
  *      connectionPool: { name: 'DATABASE_CONNECTION_POOL', type: 'number', defaultValue: 10 },
  * }
  * ```
+ * The above structure is of the {@link EnvDefinition} type, and mit the following pattern:  
+ * ```js
+ * {
+ *      ['the name of the field in the loaded configution']: [EnvConfig]
+ * }
+ * ```
  * 
  * Use it to define the global configuration object:  
- * `export const Config = loadConfig({ ... });`
+ * `export const Config = loadConfig( { ... } as EnvDefinition );`
  * 
- * @param config Environment variables definition
- * @param envObj Environment variables
- * @param mergeConfig Object to put value on, old values in this variable will be override
- * @returns Loaded configuration from environment variables
+ * This function will return a Typed configuration object if you use Typescript.
+ * 
+ * @param config Type {@link EnvDefinition}, configuration of what to load, and how, from Environment Variables.
+ * @param envObj Environment variables, defaults to `process?.env || {}`. Can be a list of objects to load from.
+ * @param mergeConfig Object to put values on. Old values in this object will be override.
+ * @returns Loaded configuration from environment variables. If `mergeConfig` is set, then that object will be returned with values updated.
  */
 export function loadConfig<T extends EnvDefinition, 
     R = {
@@ -90,6 +102,17 @@ export function loadConfig<T extends EnvDefinition,
     return thatConfig as R;
 };
 
+/**
+ * **This is an internal function.**  
+ * 
+ * This function parse a {@link EnvConfig} configuration from an object of Environment Variables.  
+ * This functions is called by {@link loadConfig}.  
+ * *Prefer the {@link loadConfig} function to load configurations.*
+ * 
+ * @param config Type {@link EnvConfig}, the definition of how to load configuration from `envObj` parameter.
+ * @param envObj Object from which configurations will be loaded *(the Environment Variable's object)*.
+ * @returns The loaded configuration.
+ */
 export function parseConfig<T extends EnvConfig,
     R = T['type'] extends 'string' 
             ? ( T['isArray'] extends true ? string[] : string ) 
@@ -131,22 +154,47 @@ export function parseConfig<T extends EnvConfig,
 const regexpBoolean = /\s*true\s*|\s*false\s*/i;
 const regexpNumber = /^\s*(0x)?(\d[\d_]*|[\d_]*\.\d[\d_]*)\s*$/;
 
+/**
+ * This function will check if the `value` parameter can be parsed to a `boolean`.  
+ * The `value` can be a primitive boolean, or a string that mit the rule of the {@link regexpBoolean} RegEx.  
+ * Anything else will return `false`.  
+ * 
+ * @param value Value to be checked
+ * @returns If the `value` parameter is a `boolean`
+ */
 export const isBoolean = (value: any): boolean => typeof value === 'boolean' || regexpBoolean.test(value) ;
+/**
+ * This function will check if the `value` parameter can be parsed to a `number`.  
+ * The `value` can be a primitive number, or a string that mit the rule of the {@link regexpNumber} RegEx.  
+ * Anything else will return `false`.  
+ * 
+ * @param value Value to be checked
+ * @returns If the `value` parameter is a `number`
+ */
 export const isNumber = (value: any): boolean => typeof value === 'number' || regexpNumber.test(value) ;
+/**
+ * This function will check if the `value` parameter is a `string`.  
+ * Anything else will return `false`.  
+ * 
+ * @param value Value to be checked
+ * @returns If the `value` parameter is a `string`
+ */
 export const isString = (value: any): boolean => typeof value === 'string' ;
 
 // ------------------------------------------------
 
 /**
- * Parse a string to a boolean value.  
+ * Parse parameter `value` to a boolean value.  
  * If a primitive boolean is set for the `value` parameter, then that will be returned.  
+ * If a string is set for the `value` parameter, then parse will try to read `true` or `false` from it.  
  * Else return the `defaultValue`.  
  * 
- * If no `defaultValue` value is set, or `defaultValue` is set to `null/undefined`, then an `Error` is thrown. 
+ * If no `defaultValue` value is set, or `defaultValue` is set to `undefined`, then an `Error` is thrown. 
  * 
- * @param value The string to parse, or a primitive boolean to return
+ * @param value The data to parse, or a primitive boolean to return
  * @param defaultValue The default value to return if the `value` parameter cannot be parsed
  * @returns The boolean parsed, or the `defaultValue`
+ * @throws Error if `value` cannot be parsed and `defaultValue` is not set
  */
 export const parseBoolean = (value: any, defaultValue?: boolean|undefined): boolean => {
     if( !isBoolean(value) ) {
@@ -157,15 +205,22 @@ export const parseBoolean = (value: any, defaultValue?: boolean|undefined): bool
     return value.trim().toLowerCase() === 'true';
 };
 /**
- * Parse a string to a number value.  
+ * Parse parameter `value` to a number value.  
  * If a primitive number is set for the `value` parameter, then that will be returned.  
+ * If a string is set for the `value` parameter, then parse will try to read a number from it.  
  * Else return the `defaultValue`.  
  * 
- * If no `defaultValue` value is set, or `defaultValue` is set to `null/undefined`, then an `Error` is thrown. 
+ * If no `defaultValue` value is set, or `defaultValue` is set to `undefined`, then an `Error` is thrown.  
  * 
- * @param value The string to parse, or a primitive number to return
+ * For example, the following strings can be parsed to numbers:  
+ * - `0`
+ * - `10.35`
+ * - `10_000.35`
+ * 
+ * @param value The data to parse, or a primitive number to return
  * @param defaultValue The default value to return if the `value` parameter cannot be parsed
  * @returns The number parsed, or the `defaultValue`
+ * @throws Error if `value` cannot be parsed and `defaultValue` is not set
  */
 export const parseNumber = (value: any, defaultValue?: number|undefined): number => {
     if( !isNumber(value) ) {
@@ -175,6 +230,19 @@ export const parseNumber = (value: any, defaultValue?: number|undefined): number
     if( !isString(value) ) return value; // is just a number
     return parseFloat( value.trim().replace(/_/g,'') );
 };
+/**
+ * Parse parameter `value` to a number, or boolean, or string.  
+ * First, will try parsing a number.  
+ * Second, will try a number.  
+ * Third will try a string.  
+ * 
+ * In the end, if no one of the previous is returned, then will return `value || defaultValue`.  
+ * So will return `value` if it is some **true** value, or return `defaultValue` otherwise.
+ * 
+ * @param value The data to parse
+ * @param defaultValue The value to return if none of the strategies can parse the value
+ * @returns The parsed value
+ */
 export const parseAuto = (value: any, defaultValue?: EnvConfigValueField): EnvConfigValueField => {
     if( isBoolean( value ) ) return parseBoolean( value );
     if( isNumber( value ) ) return parseNumber( value );

@@ -19,6 +19,8 @@ describe('The "parse..." functions', function () {
         assert.strictEqual( parseBoolean( '10_000', false ), false );
         assert.strictEqual( parseBoolean( 'another string', true ), true );
         assert.strictEqual( parseBoolean( 'another string', false ), false );
+        assert.strictEqual( parseBoolean( undefined, true ), true );
+        assert.strictEqual( parseBoolean( null, true ), true );
         assert.strictEqual( parseBoolean( [], true ), true );
         assert.strictEqual( parseBoolean( {}, true ), true );
         assert.strictEqual( parseBoolean( function(){}, true ), true );
@@ -27,6 +29,8 @@ describe('The "parse..." functions', function () {
         await assertThrows('Void string', () => parseBoolean(''));
         await assertThrows('Another string', () => parseBoolean('another string'));
         await assertThrows('Another number', () => parseBoolean(10_000.35));
+        await assertThrows('Another undefined', () => parseBoolean(undefined));
+        await assertThrows('Another null', () => parseBoolean(null));
         await assertThrows('Another array', () => parseBoolean([]));
         await assertThrows('Another object', () => parseBoolean({}));
         await assertThrows('Another function', () => parseBoolean( function(){} ));
@@ -42,6 +46,8 @@ describe('The "parse..." functions', function () {
         assert.strictEqual( parseNumber( 'false', 11_000.35 ), 11_000.35 );
         assert.strictEqual( parseNumber( 'true', 11_000.35 ), 11_000.35 );
         assert.strictEqual( parseNumber( 'another string', 11_000.35 ), 11_000.35 );
+        assert.strictEqual( parseNumber( undefined, 11_000.35 ), 11_000.35 );
+        assert.strictEqual( parseNumber( null, 11_000.35 ), 11_000.35 );
         assert.strictEqual( parseNumber( [], 11_000.35 ), 11_000.35 );
         assert.strictEqual( parseNumber( {}, 11_000.35 ), 11_000.35 );
         assert.strictEqual( parseNumber( function(){}, 11_000.35 ), 11_000.35 );
@@ -50,6 +56,8 @@ describe('The "parse..." functions', function () {
         await assertThrows('Void string', () => parseNumber(''));
         await assertThrows('Another string', () => parseNumber('another string'));
         await assertThrows('Another boolean', () => parseNumber(true));
+        await assertThrows('Another undefined', () => parseNumber(undefined));
+        await assertThrows('Another null', () => parseNumber(null));
         await assertThrows('Another array', () => parseNumber([]));
         await assertThrows('Another object', () => parseNumber({}));
         await assertThrows('Another function', () => parseNumber( function(){} ));
@@ -69,6 +77,8 @@ describe('The "parse..." functions', function () {
         assert.strictEqual( parseAuto( ' FalSE ', 'default value' ), false );
         assert.strictEqual( parseAuto( '', 'default value' ), 'default value' );
         assert.strictEqual( parseAuto( '   ', 'default value' ), 'default value' );
+        assert.strictEqual( parseAuto( undefined, 'default value' ), 'default value' );
+        assert.strictEqual( parseAuto( null, 'default value' ), 'default value' );
     });
 });
 describe('The "parseConfig" function', function() {
