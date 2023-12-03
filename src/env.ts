@@ -1,6 +1,8 @@
 
 
-export declare type EnvConfigTypeField = 'auto' | 'boolean' | 'number' | 'string' ;
+export declare type EnvConfigScalarTypes = 'auto' | 'boolean' | 'number' | 'string' ;
+export declare type EnvConfigArrayTypes = 'auto[]' | 'boolean[]' | 'number[]' | 'string[]' ;
+export declare type EnvConfigTypeField = EnvConfigScalarTypes | EnvConfigArrayTypes ;
 export declare type EnvConfigValueField = boolean | number | string ;
 
 /** Configurations to load environment variables */
@@ -17,23 +19,13 @@ export interface EnvConfig {
      * - **boolean**: will try parse boolean (words `false` or `true`), and set to `false` by default. The reading of boolean words is Case-Insensitive.  
      * - **number**: will parse as number (using `parseFloat(...)`), and set to `0.0` by default.  
      * - **string**: will load as string (*'as is'*), and set to empty string (`""`) by default. Case is not changed.  
+     * - **any array type**: will parse following the abode rules of the Scalar types, and set to empty array (`[]`) by default.
      * 
      * @default auto
      */
     type?: EnvConfigTypeField;
-    /** 
-     * Indicates that this is a list/array.  
-     * The itens are separated with value of the `separator` field.  
-     * E.g.: `[ Item one, 2, item 3 ]`.
-     * 
-     * When field `type` is defined with `auto` a mixed typed Array will be parsed,
-     * otherwise a unique typed Array is parsed, with parsing errors set to `defaultValue` *(if set)*.
-     * 
-     * @default false
-     */
-    isArray?: boolean ;
     /**
-     * Separator to use when `isArray` is `true`.  
+     * Separator to use when `type` is an Array Type, one of {@link EnvConfigArrayTypes} types.  
      * *In case of `RegExp` remember to use the `g` modifier. E.g.: `/[\|,;]/g` or `/[\s]/g`*  
      * 
      * @default RegEx /\s*[,;]+\s* /g
@@ -48,6 +40,34 @@ export interface EnvConfig {
 export interface EnvDefinition { [key: string]: EnvConfig };
 
 // ------------------------------------------------
+
+/**
+ * This is an auxiliary function to help writing configurations with code complection.  
+ * With this method, IDEs will know if some information in yours configuration is wrong,
+ * and can help on how to fix.
+ * 
+ * @param config Type {@link EnvDefinition}, configuration of what to load, and how, from Environment Variables.
+ * @returns The same configuration `config`
+ */
+export function defineConfig<T extends EnvDefinition>(config: T): T {
+    return config;
+}
+export function defineConfigType<T extends EnvDefinition, 
+    R = {
+        [P in keyof T]: 
+          T[P]['type'] extends 'string' ? string
+        : T[P]['type'] extends 'number' ? number
+        : T[P]['type'] extends 'boolean' ? boolean
+        : T[P]['type'] extends 'auto' ? any
+        : T[P]['type'] extends 'string[]' ? string[]
+        : T[P]['type'] extends 'number[]' ? number[]
+        : T[P]['type'] extends 'boolean[]' ? boolean[]
+        : T[P]['type'] extends 'auto[]' ? any[]
+        : undefined
+    }
+>(config: T): R {
+    return {} as R;
+}
 
 /**
  * Load configurations from environment variables.  
@@ -78,26 +98,45 @@ export interface EnvDefinition { [key: string]: EnvConfig };
 export function loadConfig<T extends EnvDefinition, 
     R = {
         [P in keyof T]: 
-        T[P]['type'] extends 'string' 
-            ? T[P]['isArray'] extends true ? string[] : string
-            : T[P]['type'] extends 'number' 
-                ? T[P]['isArray'] extends true ? number[] : number
-                : T[P]['type'] extends 'boolean' 
-                    ? T[P]['isArray'] extends true ? boolean[] : boolean
-                    : T[P]['type'] extends 'auto' 
-                        ? T[P]['isArray'] extends true ? any[] : any
-                        : undefined
+          T[P]['type'] extends 'string' ? string
+        : T[P]['type'] extends 'number' ? number
+        : T[P]['type'] extends 'boolean' ? boolean
+        : T[P]['type'] extends 'auto' ? any
+        : T[P]['type'] extends 'string[]' ? string[]
+        : T[P]['type'] extends 'number[]' ? number[]
+        : T[P]['type'] extends 'boolean[]' ? boolean[]
+        : T[P]['type'] extends 'auto[]' ? any[]
+        : undefined
     }
 >
 (config: T, envObjArr: Record<string, any>[] | Record<string, any> = process?.env || {}, mergeConfig: any = {}): R {
     if( !Array.isArray( envObjArr ) ) envObjArr = [ envObjArr ]; // always array after that
     let thatConfig: any = mergeConfig || {};
+    let errors: { key: string, envName: string, envIdx: number, ex: Error }[] = [];
     for(let key in config) {
         let cfg = config[ key ];
-        for(let envObj of envObjArr as Record<string, any>[]) {
+        for(let envIdx = 0 ; envIdx < ( envObjArr as Record<string, any>[] ).length ; envIdx++) {
+            let envObj = envObjArr[ envIdx ];
             if( !(cfg.name in envObj) && (key in thatConfig) ) continue;
-            thatConfig[ key ] = parseConfig( cfg, envObj );
+            try {
+                thatConfig[ key ] = parseConfig( cfg, envObj );
+            } catch(ex: any) { // save error
+                errors.push({
+                    key: key,
+                    envName: cfg.name,
+                    envIdx: envIdx as number,
+                    ex: ex,
+                });
+            }
         }
+    }
+    // check errors and thorw if any exists
+    if( errors?.length ) {
+        let errorMsg = `Error loading configuration!\r\n`;
+        for(let err of errors) {
+            errorMsg += `[Config key: ${err.key}, Env.Object param name: ${err.envName}, Env.Object index: ${err.envIdx}] Exception message: ${err.ex.message}\r\n`;
+        }
+        throw new Error(errorMsg);
     }
     return thatConfig as R;
 };
@@ -114,37 +153,36 @@ export function loadConfig<T extends EnvDefinition,
  * @returns The loaded configuration.
  */
 export function parseConfig<T extends EnvConfig,
-    R = T['type'] extends 'string' 
-            ? ( T['isArray'] extends true ? string[] : string ) 
-            : T['type'] extends 'number' 
-                ? ( T['isArray'] extends true ? number[] : number ) 
-                : T['type'] extends 'boolean' 
-                    ? ( T['isArray'] extends true ? boolean[] : boolean ) 
-                    : any
+    R =   T['type'] extends 'string' ? string
+        : T['type'] extends 'number' ? number
+        : T['type'] extends 'boolean' ? boolean
+        : T['type'] extends 'string[]' ? string[]
+        : T['type'] extends 'number[]' ? number[]
+        : T['type'] extends 'boolean[]' ? boolean[]
+        : any
 >
 (config: T, envObj: Record<string, any>): R {
-    let envStr = envObj[ config.name ] || '';
+    let envStr = envObj[ config.name ] ;
     let type = config.type || 'auto';
     let value: any = '';
-    if( config.isArray ) {
+    if( type.endsWith('[]') ) {
         let separator = config.separator || /\s*[,;]+\s*/g ;
-        let arrEnvStr = envStr.split(separator);
-        value = [];
+        let arrEnvStr = Array.isArray( envStr ) ? envStr : ( isString(envStr) ? envStr.split(separator) : [] ) ;
+        value = [] as EnvConfigValueField[];
         for(let item of arrEnvStr) {
-            if( !item || !item.trim() ) continue;
-            if( type === 'auto' ) (value as EnvConfigValueField[]).push( parseAuto( item.trim(), '' ) );
-            if( type === 'boolean' ) (value as EnvConfigValueField[]).push( parseBoolean( item.trim(), false ) );
-            if( type === 'number' ) (value as EnvConfigValueField[]).push( parseNumber( item.trim(), 0 ) );
-            if( type === 'string' ) (value as EnvConfigValueField[]).push( item.trim() || '' );
+            if( isString( item ) ) item = item.trim();
+            if( type === 'auto[]' ) value.push( parseAuto( item ) );
+            if( type === 'boolean[]' ) value.push( parseBoolean( item ) );
+            if( type === 'number[]' ) value.push( parseNumber( item ) );
+            if( type === 'string[]' ) value.push( item || '' );
         }
         if( !value.length ) value = config.defaultValue as EnvConfigValueField[] ;
 
     } else {
         if( type === 'auto' ) value = parseAuto( envStr, config.defaultValue as any );
-        if( type === 'boolean' ) value = parseBoolean( envStr, config.defaultValue as boolean || false );
-        if( type === 'number' ) value = parseNumber( envStr, config.defaultValue as number || 0 );
-        if( type === 'string' ) value = ''+ (envStr || config.defaultValue as string || '');
-        if( config.isArray ) value = [ value ];
+        if( type === 'boolean' ) value = parseBoolean( envStr, config.defaultValue as boolean );
+        if( type === 'number' ) value = parseNumber( envStr, config.defaultValue as number );
+        if( type === 'string' ) value = ''+ (envStr || config.defaultValue as string );
     }
     return value as R;
 };
@@ -152,7 +190,7 @@ export function parseConfig<T extends EnvConfig,
 // ------------------------------------------------
 
 const regexpBoolean = /\s*true\s*|\s*false\s*/i;
-const regexpNumber = /^\s*(0x)?(\d[\d_]*|[\d_]*\.\d[\d_]*)\s*$/;
+const regexpNumber = /^\s*(\-|(0x)?)(\d[\d_]*|[\d_]*\.\d[\d_]*)\s*$/;
 
 /**
  * This function will check if the `value` parameter can be parsed to a `boolean`.  

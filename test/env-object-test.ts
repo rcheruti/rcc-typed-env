@@ -7,7 +7,7 @@ describe('From object', function () {
         RETRY_LIMIT: '8',
         FEATURE_ENABLED: 'true',
     };
-    it('shoud load typed configs', async function () {
+    it('should load typed configs', async function () {
         let config = loadConfig({
             serviceURL: { name:'SERVICE_URL', type:'string', defaultValue:'none' },
             retryLimit: { name:'RETRY_LIMIT', type:'number', defaultValue: 0 },
@@ -25,7 +25,7 @@ describe('From "process.env"', function () {
     process.env.SERVICE_URL = "http://localhost:9999";
     process.env.RETRY_LIMIT = "8";
     process.env.FEATURE_ENABLED = "true";
-    it('shoud load typed configs', async function () {
+    it('should load typed configs', async function () {
         let config = loadConfig({
             serviceURL: { name:'SERVICE_URL', type:'string', defaultValue:'none' },
             retryLimit: { name:'RETRY_LIMIT', type:'number', defaultValue: 0 },
@@ -49,7 +49,7 @@ describe('From a list of inputs environments', function () {
         SERVICE_URL: 'http://www.another.com',
         FEATURE_ENABLED: 'false',
     };
-    it('shoud load typed configs', async function () {
+    it('should load typed configs', async function () {
         let config = loadConfig({
             serviceURL: { name:'SERVICE_URL', type:'string', defaultValue:'none' },
             retryLimit: { name:'RETRY_LIMIT', type:'number', defaultValue: 0 },
@@ -73,7 +73,7 @@ describe('With the same output object', function () {
         SERVICE_URL: 'http://www.another.com',
         FEATURE_ENABLED: 'false',
     };
-    it('shoud override old configs', async function () {
+    it('should override old configs', async function () {
         let config = loadConfig({
             serviceURL: { name:'SERVICE_URL', type:'string', defaultValue:'none' },
             retryLimit: { name:'RETRY_LIMIT', type:'number', defaultValue: 0 },

@@ -1,5 +1,6 @@
 import * as assert from 'assert';
 import { loadConfig } from '../src/env';
+import { assertThrows } from './test-utils';
 
 describe('For "boolean"', function () {
     const env = {
@@ -12,7 +13,7 @@ describe('For "boolean"', function () {
         BOOLEAN_ARRAY: 'TrUe False true FALSE',
         BOOLEAN_ALREADY_TRUE: true,
     };
-    it('shoud load typed configs', async function () {
+    it('should load typed configs', async function () {
         let config = loadConfig({
             BOOLEAN_LOWERCASE_FALSE: { name:'BOOLEAN_LOWERCASE_FALSE', type:'boolean' },
             BOOLEAN_UPPERCASE_FALSE: { name:'BOOLEAN_UPPERCASE_FALSE', type:'boolean' },
@@ -20,7 +21,7 @@ describe('For "boolean"', function () {
             BOOLEAN_LOWERCASE_TRUE: { name:'BOOLEAN_LOWERCASE_TRUE', type:'boolean' },
             BOOLEAN_UPPERCASE_TRUE: { name:'BOOLEAN_UPPERCASE_TRUE', type:'boolean' },
             BOOLEAN_MIXEDCASE_TRUE: { name:'BOOLEAN_MIXEDCASE_TRUE', type:'boolean' },
-            BOOLEAN_ARRAY: { name:'BOOLEAN_ARRAY', type:'boolean', isArray: true, separator:/\s+/g },
+            BOOLEAN_ARRAY: { name:'BOOLEAN_ARRAY', type:'boolean[]', separator:/\s+/g },
             BOOLEAN_ALREADY_TRUE: { name:'BOOLEAN_ALREADY_TRUE', type:'boolean' },
             BOOLEAN_THAT_NOT_EXISTS: { name:'BOOLEAN_THAT_NOT_EXISTS', type:'boolean', defaultValue: true },
         }, env);
@@ -56,10 +57,11 @@ describe('For wrong "boolean" definitions', function () {
         BOOLEAN_NUMBER: 89,
     };
     it('should throw errors', async function () {
-        let config = loadConfig({
-            BOOLEAN_STRING: { name:'BOOLEAN_STRING', type:'boolean' },
-            BOOLEAN_NUMBER: { name:'BOOLEAN_NUMBER', type:'boolean' },
-        }, env);
-
+        assertThrows('No errors thrown parsing wrong booleans', () => {
+            let config = loadConfig({
+                BOOLEAN_STRING: { name:'BOOLEAN_STRING', type:'boolean' },
+                BOOLEAN_NUMBER: { name:'BOOLEAN_NUMBER', type:'boolean' },
+            }, env);
+        });
     });
 });
