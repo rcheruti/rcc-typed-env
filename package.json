@@ -1,7 +1,7 @@
 {
-  "name": "typed-env",
+  "name": "@rcc/typed-env",
   "version": "0.0.1",
-  "description": "Parse environment variables from 'process.env' to Typed object",
+  "description": "Parse environment variables to Typed object (with intellisense)",
   "main": "index.js",
   "author": "Rafael Cheruti",
   "license": "BSD-2-Clause",
