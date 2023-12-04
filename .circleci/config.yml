@@ -26,4 +26,5 @@ jobs:
 workflows:
   test-workflow:
     jobs:
-      - test
+      - test:
+          branches: /release.*/
