@@ -27,4 +27,6 @@ workflows:
   test-workflow:
     jobs:
       - test:
-          branches: /release.*/
+          filters:
+            branches:
+              only: /release.*/
